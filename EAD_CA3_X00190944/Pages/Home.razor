@@ -1,5 +1,52 @@
 ﻿@page "/"
 
+@inject HttpClient Http
+
+@using EAD_CA3_X00190944.Enums;
+
 <PageTitle>Joke Generator | X00190944</PageTitle>
 
 <h1>Joke Generator</h1>
+
+<button @onclick="GenerateJoke">Generate Joke</button>
+
+@if (!string.IsNullOrEmpty(joke))
+{
+	<div>
+		<h3>Joke</h3>
+		<p>@joke</p>
+	</div>
+	<div>
+		<h3>URL</h3>
+		<p>@url</p>
+	</div>
+}
+
+@code {
+	private class JokeResponse
+	{
+		public string Type { get; set; } = string.Empty;
+		public string Joke { get; set; } = string.Empty;
+		public string Setup { get; set; } = string.Empty;
+		public string Delivery { get; set; } = string.Empty;
+	}
+
+	private string joke = string.Empty;
+	private string url = string.Empty;
+
+	private async Task GenerateJoke()
+	{
+		url = "https://v2.jokeapi.dev/joke/Any";
+
+		JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
+		if (response != null)
+		{
+			joke = response.Type == JokeType.Single.ToString().ToLower() ?
+				response.Joke : $"{response.Setup} - {response.Delivery}";
+		}
+		else
+		{
+			throw new InvalidOperationException("Error: Joke response is null.");
+		}
+	}
+}
