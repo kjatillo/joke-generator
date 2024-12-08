@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @inject HttpClient Http
+@inject ILogger<Home> Logger
 
 @using EAD_CA3_X00190944.Enums;
 
@@ -8,8 +9,24 @@
 
 <h1>Joke Generator</h1>
 
+<!-- Category -->
+<div>
+	<h3>Select Categories</h3>
+	@foreach (Category category in Enum.GetValues(typeof(Category)))
+	{
+		if (category != Category.Any)
+		{
+			<div>
+				<input type="checkbox" @bind="selectedCategories[category]" /> @category
+			</div>
+		}
+	}
+</div>
+
+<!-- Generate Joke Button -->
 <button @onclick="GenerateJoke">Generate Joke</button>
 
+<!-- Joke Output -->
 @if (!string.IsNullOrEmpty(joke))
 {
 	<div>
@@ -23,6 +40,7 @@
 }
 
 @code {
+	// Class
 	private class JokeResponse
 	{
 		public string Type { get; set; } = string.Empty;
@@ -31,22 +49,52 @@
 		public string Delivery { get; set; } = string.Empty;
 	}
 
+	// Fields
+	private Dictionary<Category, bool> selectedCategories = Enum.GetValues(typeof(Category))
+		.Cast<Category>()
+		.ToDictionary(category => category, category => false);
+
 	private string joke = string.Empty;
 	private string url = string.Empty;
 
+	// Methods
 	private async Task GenerateJoke()
 	{
-		url = "https://v2.jokeapi.dev/joke/Any";
+		try
+		{
+			url = "https://v2.jokeapi.dev/joke/";
 
-		JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
-		if (response != null)
-		{
-			joke = response.Type == JokeType.Single.ToString().ToLower() ?
-				response.Joke : $"{response.Setup} - {response.Delivery}";
+			var selectedCategoriesString = string.Join(",", selectedCategories
+					.Where(c => c.Value)
+					.Select(c => c.Key.ToString()));
+
+			if (string.IsNullOrEmpty(selectedCategoriesString))
+			{
+				selectedCategoriesString = Category.Any.ToString();
+			}
+
+			url += $"{selectedCategoriesString}";
+
+			JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
+			if (response != null)
+			{
+				joke = response.Type == JokeType.Single.ToString().ToLower() ?
+					response.Joke : $"{response.Setup} - {response.Delivery}";
+			}
+			else
+			{
+				throw new InvalidOperationException("Error: Joke response is null.");
+			}
 		}
-		else
+		catch (HttpRequestException httpEx)
 		{
-			throw new InvalidOperationException("Error: Joke response is null.");
+			joke = "Error fetching joke.";
+			Logger.LogError(httpEx, $"{joke}: {httpEx.Message}");
+		}
+		catch (Exception ex)
+		{
+			joke = "An unexpected error occurred.";
+			Logger.LogError(ex, $"{joke}: {ex.Message}");
 		}
 	}
 }
