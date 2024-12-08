@@ -3,9 +3,6 @@
 @inject HttpClient Http
 @inject ILogger<Home> Logger
 
-@using EAD_CA3_X00190944.Enums;
-@using Microsoft.AspNetCore.Components.QuickGrid;
-
 <PageTitle>Joke Generator | X00190944</PageTitle>
 
 <h1>Joke Generator</h1>
@@ -30,7 +27,7 @@
 	<select @bind="selectedLanguage">
 		@foreach (Language language in Enum.GetValues(typeof(Language)))
 		{
-			<option value="@language">@GetLanguageDisplayName(language)</option>
+			<option value="@language">@UtilityMethods.GetLanguageDisplayName(language)</option>
 		}
 	</select>
 </div>
@@ -52,7 +49,7 @@
 	<input type="text"
      placeholder="Enter search term(s)"
      @bind="searchQuery"
-     @onkeydown="TriggerGenerateJoke" />
+     @onkeydown="@(e => UtilityMethods.TriggerGenerateJoke(e, GenerateJokeAsync))" />
 </div>
 
 <!-- Quantity -->
@@ -76,21 +73,6 @@
 }
 
 @code {
-	// Class
-	private class JokeResponse
-	{
-		public string Type { get; set; } = string.Empty;
-		public string Joke { get; set; } = string.Empty;
-		public string Setup { get; set; } = string.Empty;
-		public string Delivery { get; set; } = string.Empty;
-		public string Category { get; set; } = string.Empty;
-	}
-
-	private class MultipleJokeResponse
-	{
-		public List<JokeResponse> Jokes { get; set; } = new List<JokeResponse>();
-	}
-
 	// Fields
 	private const int MIN_QTY = 1;
 	private const int MAX_QTY = 10;
@@ -99,13 +81,13 @@
 		.Cast<Category>()
 		.ToDictionary(category => category, category => false);
 
-	private Language selectedLanguage = Language.EN;
-	private JokeType selectedJokeType = JokeType.Any;
 	private int quantity = MIN_QTY;
 	private string searchQuery = string.Empty;
+	private JokeType selectedJokeType = JokeType.Any;
+	private Language selectedLanguage = Language.EN;
 	private List<JokeResponse> jokes = new List<JokeResponse>();
 
-	// Methods
+	// Generate Joke Method
 	private async Task GenerateJokeAsync()
 	{
 		try
@@ -183,28 +165,5 @@
 		{
 			Logger.LogError(ex, "An unexpected error occurred: {Message}", ex.Message);
 		}
-	}
-
-	private async Task TriggerGenerateJoke(KeyboardEventArgs e)
-	{
-		if (e.Key == "Enter")
-		{
-			await Task.Delay(1);  // Ensure the search query binding is updated
-			await GenerateJokeAsync();
-		}
-	}
-
-	private string GetLanguageDisplayName(Language language)
-	{
-		return language switch
-		{
-			Language.EN => "English",
-			Language.CS => "Czech",
-			Language.FR => "French",
-			Language.DE => "German",
-			Language.PT => "Portuguese",
-			Language.ES => "Spanish",
-			_ => "Unknown"
-		};
 	}
 }
