@@ -45,15 +45,26 @@
 	</select>
 </div>
 
+<!-- Search Bar -->
+<div>
+	<h3>Search</h3>
+	<input 
+		type="text" 
+		placeholder="Enter search term(s)" 
+		@bind="searchQuery"
+		@onkeydown="TriggerGenerateJoke" 
+	/>
+</div>
+
 <!-- Generate Joke Button -->
-<button @onclick="GenerateJoke">Generate Joke</button>
+<button @onclick="GenerateJokeAsync">Generate Joke</button>
 
 <!-- Joke Output -->
-@if (!string.IsNullOrEmpty(joke))
+@if (!string.IsNullOrEmpty(result))
 {
 	<div>
 		<h3>Joke</h3>
-		<p>@joke</p>
+		<p>@result</p>
 	</div>
 	<div>
 		<h3>URL</h3>
@@ -69,6 +80,8 @@
 		public string Joke { get; set; } = string.Empty;
 		public string Setup { get; set; } = string.Empty;
 		public string Delivery { get; set; } = string.Empty;
+		public string causedBy { get; set; } = string.Empty;
+		public bool Error { get; set; }
 	}
 
 	// Fields
@@ -78,11 +91,12 @@
 
 	private Language selectedLanguage = Language.EN;
 	private JokeType selectedJokeType = JokeType.Any;
-	private string joke = string.Empty;
+	private string searchQuery = string.Empty;
+	private string result = string.Empty;
 	private string url = string.Empty;
 
 	// Methods
-	private async Task GenerateJoke()
+	private async Task GenerateJokeAsync()
 	{
 		try
 		{
@@ -109,11 +123,26 @@
 				url += $"&type={selectedJokeType.ToString().ToLower()}";
 			}
 
+			if (!string.IsNullOrEmpty(searchQuery))
+			{
+				var encodedQuery = Uri.EscapeDataString(searchQuery);
+				url += $"&contains={encodedQuery}";
+			}
+
 			JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
 			if (response != null)
 			{
-				joke = response.Type == JokeType.Single.ToString().ToLower() ?
-					response.Joke : $"{response.Setup} - {response.Delivery}";
+				if (response.Error)
+				{
+					string noMatchFound = response.causedBy;
+					result = noMatchFound;
+				}
+				else
+				{
+					result = response.Type == JokeType.Single.ToString().ToLower() ?
+						response.Joke : $"{response.Setup} - {response.Delivery}";
+					Console.WriteLine(result);
+				}
 			}
 			else
 			{
@@ -122,13 +151,23 @@
 		}
 		catch (HttpRequestException httpEx)
 		{
-			joke = "Error fetching joke.";
-			Logger.LogError(httpEx, $"{joke}: {httpEx.Message}");
+			result = "Error fetching joke.";
+			Logger.LogError(httpEx, $"{result}: {httpEx.Message}");
 		}
 		catch (Exception ex)
 		{
-			joke = "An unexpected error occurred.";
-			Logger.LogError(ex, $"{joke}: {ex.Message}");
+			result = "An unexpected error occurred.";
+			Logger.LogError(ex, $"{result}: {ex.Message}");
+		}
+
+		StateHasChanged();
+	}
+
+	private async void TriggerGenerateJoke(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			await GenerateJokeAsync();
 		}
 	}
 
