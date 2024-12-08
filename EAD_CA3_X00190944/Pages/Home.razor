@@ -4,6 +4,7 @@
 @inject ILogger<Home> Logger
 
 @using EAD_CA3_X00190944.Enums;
+@using Microsoft.AspNetCore.Components.QuickGrid;
 
 <PageTitle>Joke Generator | X00190944</PageTitle>
 
@@ -49,25 +50,29 @@
 <div>
 	<h3>Search</h3>
 	<input type="text"
-		   placeholder="Enter search term(s)"
-		   @bind="searchQuery"
-		   @onkeydown="TriggerGenerateJoke" />
+     placeholder="Enter search term(s)"
+     @bind="searchQuery"
+     @onkeydown="TriggerGenerateJoke" />
+</div>
+
+<!-- Quantity -->
+<div>
+	<h3>Quantity of Jokes</h3>
+	<input type="number" @bind="quantity" min="@MIN_QTY" max="@MAX_QTY" />
 </div>
 
 <!-- Generate Joke Button -->
 <button @onclick="GenerateJokeAsync">Generate Joke</button>
 
-<!-- Joke Output -->
-@if (!string.IsNullOrEmpty(result))
+<!-- Joke Output with QuickGrid -->
+@if (jokes.Any())
 {
-	<div>
-		<h3>Joke</h3>
-		<p>@result</p>
-	</div>
-	<div>
-		<h3>URL</h3>
-		<p>@url</p>
-	</div>
+	<QuickGrid Items="jokes.AsQueryable()" RowsPerPage="5" TGridItem="JokeResponse">
+		<PropertyColumn Property="@(j => j.Category)" Title="Category" Sortable="true" />
+		<PropertyColumn Property="@(j => j.Type)" Title="Type" Sortable="true" />
+        <PropertyColumn Property="@(j => j.Type == JokeType.TwoPart.ToString().ToLower() ? 
+			$"{j.Setup} - {j.Delivery}" : j.Joke)" Title="Joke" Sortable="true" />
+	</QuickGrid>
 }
 
 @code {
@@ -78,26 +83,36 @@
 		public string Joke { get; set; } = string.Empty;
 		public string Setup { get; set; } = string.Empty;
 		public string Delivery { get; set; } = string.Empty;
+		public string Category { get; set; } = string.Empty;
+	}
+
+	private class MultipleJokeResponse
+	{
+		public List<JokeResponse> Jokes { get; set; } = new List<JokeResponse>();
 	}
 
 	// Fields
+	private const int MIN_QTY = 1;
+	private const int MAX_QTY = 10;
+
 	private Dictionary<Category, bool> selectedCategories = Enum.GetValues(typeof(Category))
 		.Cast<Category>()
 		.ToDictionary(category => category, category => false);
 
 	private Language selectedLanguage = Language.EN;
 	private JokeType selectedJokeType = JokeType.Any;
+	private int quantity = MIN_QTY;
 	private string searchQuery = string.Empty;
-	private string result = string.Empty;
-	private string url = string.Empty;
+	private List<JokeResponse> jokes = new List<JokeResponse>();
 
 	// Methods
 	private async Task GenerateJokeAsync()
 	{
 		try
 		{
-			url = "https://v2.jokeapi.dev/joke/";
+			string url = "https://v2.jokeapi.dev/joke/";
 
+			// Category
 			var selectedCategoriesString = string.Join(",", selectedCategories
 					.Where(c => c.Value)
 					.Select(c => c.Key.ToString()));
@@ -107,6 +122,7 @@
 				selectedCategoriesString = Category.Any.ToString();
 			}
 
+			// Blacklist
 			var blacklistFlags = string.Join(",", Enum.GetValues(typeof(Blacklist))
 				.Cast<Blacklist>()
 				.Select(flag => flag.ToString().ToLower()));
@@ -114,37 +130,58 @@
 			url += $"{selectedCategoriesString}?lang={selectedLanguage.ToString().ToLower()}";
 			url += $"&blacklistFlags={blacklistFlags}";
 
+			// Joke Type
 			if (selectedJokeType != JokeType.Any)
 			{
 				url += $"&type={selectedJokeType.ToString().ToLower()}";
 			}
 
+			// Search
 			if (!string.IsNullOrEmpty(searchQuery))
 			{
 				var encodedQuery = Uri.EscapeDataString(searchQuery);
 				url += $"&contains={encodedQuery}";
 			}
 
-			JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
-			if (response != null)
+			// Quantity
+			if (quantity > MIN_QTY && quantity <= MAX_QTY)
 			{
-				result = response.Type == JokeType.Single.ToString().ToLower() ?
-					response.Joke : $"{response.Setup} - {response.Delivery}";
+				url += $"&amount={quantity}";
+			}
+
+			// Output
+			if (quantity == MIN_QTY)
+			{
+				JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
+				if (response != null)
+				{
+					jokes = new List<JokeResponse> { response };
+				}
+				else
+				{
+					throw new InvalidOperationException("Joke response is null.");
+				}
 			}
 			else
 			{
-				throw new InvalidOperationException("Joke response is null.");
+				MultipleJokeResponse? response = await Http.GetFromJsonAsync<MultipleJokeResponse>(url);
+				if (response != null)
+				{
+					jokes = response.Jokes;
+				}
+				else
+				{
+					throw new InvalidOperationException("Error: Joke response is null.");
+				}
 			}
 		}
 		catch (HttpRequestException httpEx)
 		{
-			result = "Error fetching joke.";
-			Logger.LogError(httpEx, $"{result}: {httpEx.Message}");
+			Logger.LogError(httpEx, "Error fetching joke: {Message}", httpEx.Message);
 		}
 		catch (Exception ex)
 		{
-			result = "An unexpected error occurred.";
-			Logger.LogError(ex, $"{result}: {ex.Message}");
+			Logger.LogError(ex, "An unexpected error occurred: {Message}", ex.Message);
 		}
 	}
 
