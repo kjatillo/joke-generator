@@ -72,8 +72,12 @@
 			{
 				selectedCategoriesString = Category.Any.ToString();
 			}
+				
+			var blacklistFlags = string.Join(",", Enum.GetValues(typeof(Blacklist))
+				.Cast<Blacklist>()
+				.Select(flag => flag.ToString().ToLower()));
 
-			url += $"{selectedCategoriesString}";
+			url += $"{selectedCategoriesString}?blacklistFlags={blacklistFlags}";
 
 			JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
 			if (response != null)
