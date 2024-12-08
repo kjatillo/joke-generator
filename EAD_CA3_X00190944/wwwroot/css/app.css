@@ -75,3 +75,14 @@
 code {
     color: #c02d76;
 }
+
+/* Custom CSS */
+#main {
+    max-width: 60%;
+}
+
+@media (max-width: 768px) {
+    #main {
+        max-width: 100%;
+    }
+}

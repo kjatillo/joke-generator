@@ -5,90 +5,116 @@
 
 <PageTitle>Joke Generator | X00190944</PageTitle>
 
-<h1>Joke Generator</h1>
+<div class="container border border-success rounded p-5 my-3" id="main">
+	<img src="pepe_thumbsup.png" alt="Pepe Meme" class="d-block mx-auto" style="height: 75px;" />
+	<h1 class="text-center my-4">Joke Generator</h1>
 
-<!-- Category Checkbox -->
-<div>
-	<h3>Select Categories</h3>
-	@foreach (Category category in Enum.GetValues(typeof(Category)))
-	{
-		if (category != Category.Any)
-		{
-			<div>
-				<input type="checkbox" @bind="selectedCategories[category]" /> @category
+    <!-- Category Checkbox -->
+    <div class="mb-3">
+        <h6>Select Categories</h6>
+        <div class="d-flex flex-wrap gap-3 flex-column flex-md-row">
+            @foreach (Category category in Enum.GetValues(typeof(Category)))
+            {
+                if (category != Category.Any)
+                {
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" @bind="selectedCategories[category]" />
+                        <label class="form-check-label">@category</label>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+	<!-- Language Dropdown -->
+	<div class="mb-3">
+		<h6>Select Language</h6>
+		<div class="row">
+			<div class="col-12 col-md-6">
+				<select class="form-select" @bind="selectedLanguage">
+					@foreach (Language language in Enum.GetValues(typeof(Language)))
+					{
+						<option value="@language">@UtilityMethods.GetLanguageDisplayName(language)</option>
+					}
+				</select>
 			</div>
-		}
-	}
+		</div>
+	</div>
+
+	<!-- Joke Type Dropdown -->
+	<div class="mb-3">
+		<h6>Select Type</h6>
+		<div class="row">
+			<div class="col-12 col-md-6">
+				<select class="form-select" @bind="selectedJokeType">
+					@foreach (JokeType jokeType in Enum.GetValues(typeof(JokeType)))
+					{
+						<option value="@jokeType">@jokeType</option>
+					}
+				</select>
+			</div>
+		</div>
+	</div>
+
+	<!-- Search Bar -->
+	<div class="mb-3">
+		<h6>Search</h6>
+		<div class="row">
+			<div class="col-12 col-md-6">
+				<input class="form-control" type="text" placeholder="Enter search term(s)" @bind="searchQuery" @onkeydown="@(e => UtilityMethods.TriggerGenerateJoke(e, GenerateJokeAsync))" />
+			</div>
+		</div>
+	</div>
+
+	<!-- Quantity -->
+	<div class="mb-3">
+		<h6>Quantity</h6>
+		<div class="row">
+			<div class="col-12 col-md-3">
+				<input class="form-control" type="number" @bind="quantity" min="@MIN_QTY" max="@MAX_QTY" />
+			</div>
+		</div>
+	</div>
+
+    <!-- Generate Joke Button -->
+    <div class="d-grid gap-2 d-md-block">
+        <button class="btn btn-success me-2" @onclick="GenerateJokeAsync">Generate Joke</button>
+        <button class="btn btn-secondary" @onclick="ClearForm">Clear Form</button>
+    </div>
+
+	<!-- Joke Output with QuickGrid -->
+    @if (jokes.Any())
+    {
+        <hr class="mt-4 mb-2" />
+
+        <div class="table-responsive">
+            <QuickGrid Items="jokes.AsQueryable()" Pagination="@pagination" class="table table-striped table-hover">
+                <PropertyColumn Property="@(j => j.Category)" Title="Category" Sortable="true" />
+                <PropertyColumn Property="@(j => j.Type)" Title="Type" Sortable="true" />
+                <PropertyColumn Property="@(j => j.Type == JokeType.TwoPart.ToString().ToLower() ?
+                        $"{j.Setup} - {j.Delivery}" : j.Joke)" Title="Joke" Sortable="true" />
+            </QuickGrid>
+        </div>
+
+        <Paginator State="@pagination" />
+    }
 </div>
-
-<!-- Language Dropdown -->
-<div>
-	<h3>Select Language</h3>
-	<select @bind="selectedLanguage">
-		@foreach (Language language in Enum.GetValues(typeof(Language)))
-		{
-			<option value="@language">@UtilityMethods.GetLanguageDisplayName(language)</option>
-		}
-	</select>
-</div>
-
-<!-- Joke Type Dropdown -->
-<div>
-	<h3>Select Joke Type</h3>
-	<select @bind="selectedJokeType">
-		@foreach (JokeType jokeType in Enum.GetValues(typeof(JokeType)))
-		{
-			<option value="@jokeType">@jokeType</option>
-		}
-	</select>
-</div>
-
-<!-- Search Bar -->
-<div>
-	<h3>Search</h3>
-	<input type="text"
-     placeholder="Enter search term(s)"
-     @bind="searchQuery"
-     @onkeydown="@(e => UtilityMethods.TriggerGenerateJoke(e, GenerateJokeAsync))" />
-</div>
-
-<!-- Quantity -->
-<div>
-	<h3>Quantity of Jokes</h3>
-	<input type="number" @bind="quantity" min="@MIN_QTY" max="@MAX_QTY" />
-</div>
-
-<!-- Generate Joke Button -->
-<button @onclick="GenerateJokeAsync">Generate Joke</button>
-
-<!-- Clear Form Button -->
-<button @onclick="ClearForm">Clear Form</button>
-
-<!-- Joke Output with QuickGrid -->
-@if (jokes.Any())
-{
-	<QuickGrid Items="jokes.AsQueryable()" RowsPerPage="5" TGridItem="JokeResponse">
-		<PropertyColumn Property="@(j => j.Category)" Title="Category" Sortable="true" />
-		<PropertyColumn Property="@(j => j.Type)" Title="Type" Sortable="true" />
-        <PropertyColumn Property="@(j => j.Type == JokeType.TwoPart.ToString().ToLower() ? 
-			$"{j.Setup} - {j.Delivery}" : j.Joke)" Title="Joke" Sortable="true" />
-	</QuickGrid>
-}
 
 @code {
 	// Fields
 	private const int MIN_QTY = 1;
 	private const int MAX_QTY = 10;
 
-	private Dictionary<Category, bool> selectedCategories = Enum.GetValues(typeof(Category))
-		.Cast<Category>()
-		.ToDictionary(category => category, category => false);
-
 	private int quantity = MIN_QTY;
 	private string searchQuery = string.Empty;
 	private JokeType selectedJokeType = JokeType.Any;
 	private Language selectedLanguage = Language.EN;
 	private List<JokeResponse> jokes = new List<JokeResponse>();
+	private PaginationState pagination = new PaginationState { ItemsPerPage = 5 };
+
+	private Dictionary<Category, bool> selectedCategories = Enum.GetValues(typeof(Category))
+		.Cast<Category>()
+		.ToDictionary(category => category, category => false);
 
 	// Generate Joke Method
 	private async Task GenerateJokeAsync()
@@ -129,10 +155,17 @@
 			}
 
 			// Quantity
-			if (quantity > MIN_QTY && quantity <= MAX_QTY)
+			if (quantity < MIN_QTY)
 			{
-				url += $"&amount={quantity}";
+				quantity = MIN_QTY;
 			}
+			else if (quantity > MAX_QTY)
+			{
+				quantity = MAX_QTY;
+			}
+
+			url += $"&amount={quantity}";
+			StateHasChanged();
 
 			// Output
 			if (quantity == MIN_QTY)
