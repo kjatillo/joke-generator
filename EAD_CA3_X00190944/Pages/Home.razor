@@ -48,12 +48,10 @@
 <!-- Search Bar -->
 <div>
 	<h3>Search</h3>
-	<input 
-		type="text" 
-		placeholder="Enter search term(s)" 
-		@bind="searchQuery"
-		@onkeydown="TriggerGenerateJoke" 
-	/>
+	<input type="text"
+		   placeholder="Enter search term(s)"
+		   @bind="searchQuery"
+		   @onkeydown="TriggerGenerateJoke" />
 </div>
 
 <!-- Generate Joke Button -->
@@ -80,8 +78,6 @@
 		public string Joke { get; set; } = string.Empty;
 		public string Setup { get; set; } = string.Empty;
 		public string Delivery { get; set; } = string.Empty;
-		public string causedBy { get; set; } = string.Empty;
-		public bool Error { get; set; }
 	}
 
 	// Fields
@@ -132,21 +128,12 @@
 			JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
 			if (response != null)
 			{
-				if (response.Error)
-				{
-					string noMatchFound = response.causedBy;
-					result = noMatchFound;
-				}
-				else
-				{
-					result = response.Type == JokeType.Single.ToString().ToLower() ?
-						response.Joke : $"{response.Setup} - {response.Delivery}";
-					Console.WriteLine(result);
-				}
+				result = response.Type == JokeType.Single.ToString().ToLower() ?
+					response.Joke : $"{response.Setup} - {response.Delivery}";
 			}
 			else
 			{
-				throw new InvalidOperationException("Error: Joke response is null.");
+				throw new InvalidOperationException("Joke response is null.");
 			}
 		}
 		catch (HttpRequestException httpEx)
@@ -159,14 +146,13 @@
 			result = "An unexpected error occurred.";
 			Logger.LogError(ex, $"{result}: {ex.Message}");
 		}
-
-		StateHasChanged();
 	}
 
-	private async void TriggerGenerateJoke(KeyboardEventArgs e)
+	private async Task TriggerGenerateJoke(KeyboardEventArgs e)
 	{
 		if (e.Key == "Enter")
 		{
+			await Task.Delay(1);  // Ensure the search query binding is updated
 			await GenerateJokeAsync();
 		}
 	}
