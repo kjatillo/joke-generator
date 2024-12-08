@@ -61,6 +61,9 @@
 <!-- Generate Joke Button -->
 <button @onclick="GenerateJokeAsync">Generate Joke</button>
 
+<!-- Clear Form Button -->
+<button @onclick="ClearForm">Clear Form</button>
+
 <!-- Joke Output with QuickGrid -->
 @if (jokes.Any())
 {
@@ -165,5 +168,17 @@
 		{
 			Logger.LogError(ex, "An unexpected error occurred: {Message}", ex.Message);
 		}
+	}
+
+	private void ClearForm()
+	{
+		jokes.Clear();
+		quantity = MIN_QTY;
+		searchQuery = string.Empty;
+		selectedJokeType = JokeType.Any;
+		selectedLanguage = Language.EN;
+		selectedCategories = Enum.GetValues(typeof(Category))
+			.Cast<Category>()
+			.ToDictionary(category => category, category => false);
 	}
 }
