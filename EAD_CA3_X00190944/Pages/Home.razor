@@ -9,7 +9,7 @@
 
 <h1>Joke Generator</h1>
 
-<!-- Category -->
+<!-- Category Checkbox -->
 <div>
 	<h3>Select Categories</h3>
 	@foreach (Category category in Enum.GetValues(typeof(Category)))
@@ -21,6 +21,17 @@
 			</div>
 		}
 	}
+</div>
+
+<!-- Language Dropdown -->
+<div>
+	<h3>Select Language</h3>
+	<select @bind="selectedLanguage">
+		@foreach (Language language in Enum.GetValues(typeof(Language)))
+		{
+			<option value="@language">@GetLanguageDisplayName(language)</option>
+		}
+	</select>
 </div>
 
 <!-- Generate Joke Button -->
@@ -54,6 +65,7 @@
 		.Cast<Category>()
 		.ToDictionary(category => category, category => false);
 
+	private Language selectedLanguage = Language.EN;
 	private string joke = string.Empty;
 	private string url = string.Empty;
 
@@ -72,12 +84,13 @@
 			{
 				selectedCategoriesString = Category.Any.ToString();
 			}
-				
+
 			var blacklistFlags = string.Join(",", Enum.GetValues(typeof(Blacklist))
 				.Cast<Blacklist>()
 				.Select(flag => flag.ToString().ToLower()));
 
-			url += $"{selectedCategoriesString}?blacklistFlags={blacklistFlags}";
+			url += $"{selectedCategoriesString}?lang={selectedLanguage.ToString().ToLower()}";
+			url += $"&blacklistFlags={blacklistFlags}";
 
 			JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
 			if (response != null)
@@ -100,5 +113,19 @@
 			joke = "An unexpected error occurred.";
 			Logger.LogError(ex, $"{joke}: {ex.Message}");
 		}
+	}
+
+	private string GetLanguageDisplayName(Language language)
+	{
+		return language switch
+		{
+			Language.EN => "English",
+			Language.CS => "Czech",
+			Language.FR => "French",
+			Language.DE => "German",
+			Language.PT => "Portuguese",
+			Language.ES => "Spanish",
+			_ => "Unknown"
+		};
 	}
 }
