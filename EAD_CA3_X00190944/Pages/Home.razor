@@ -6,25 +6,31 @@
 <PageTitle>Joke Generator | X00190944</PageTitle>
 
 <div class="container border border-success rounded p-5 my-3" id="main">
-	<img src="pepe_thumbsup.png" alt="Pepe Meme" class="d-block mx-auto" style="height: 75px;" />
-	<h1 class="text-center my-4">Joke Generator</h1>
+	<img src="images/pepe_ok.png"
+		 alt="Pepe Meme"
+		 class="d-block mx-auto bg-success"
+		 style="height: 75px;" />
 
-    <!-- Category Checkbox -->
-    <div class="mb-3">
-        <h6>Select Categories</h6>
-        <div class="d-flex flex-wrap gap-3 flex-column flex-md-row">
-            @foreach (Category category in Enum.GetValues(typeof(Category)))
-            {
-                if (category != Category.Any)
-                {
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" @bind="selectedCategories[category]" />
-                        <label class="form-check-label">@category</label>
-                    </div>
-                }
-            }
-        </div>
-    </div>
+	<h1 class="text-center mb-5 display-4 text-success">Joke Generator</h1>
+
+	<!-- Category Checkbox -->
+	<div class="mb-3">
+		<h6>Select Categories</h6>
+		<div class="d-flex flex-wrap gap-3 flex-column flex-md-row">
+			@foreach (Category category in Enum.GetValues(typeof(Category)))
+			{
+				if (category != Category.Any)
+				{
+					<div class="form-check form-check-inline">
+						<input class="form-check-input"
+							   type="checkbox"
+							   @bind="selectedCategories[category]" />
+						<label class="form-check-label">@category</label>
+					</div>
+				}
+			}
+		</div>
+	</div>
 
 	<!-- Language Dropdown -->
 	<div class="mb-3">
@@ -34,7 +40,9 @@
 				<select class="form-select" @bind="selectedLanguage">
 					@foreach (Language language in Enum.GetValues(typeof(Language)))
 					{
-						<option value="@language">@UtilityMethods.GetLanguageDisplayName(language)</option>
+						<option value="@language">
+							@UtilityMethods.GetLanguageDisplayName(language)
+						</option>
 					}
 				</select>
 			</div>
@@ -61,7 +69,13 @@
 		<h6>Search</h6>
 		<div class="row">
 			<div class="col-12 col-md-6">
-				<input class="form-control" type="text" placeholder="Enter search term(s)" @bind="searchQuery" @onkeydown="@(e => UtilityMethods.TriggerGenerateJoke(e, GenerateJokeAsync))" />
+				<input class="form-control"
+					   type="text"
+					   placeholder="Enter search term(s)"
+					   @bind="searchQuery"
+					   @onkeydown="@(async e =>
+							await UtilityMethods
+									.TriggerGenerateJoke(e, GenerateJokeAsync))" />
 			</div>
 		</div>
 	</div>
@@ -71,33 +85,62 @@
 		<h6>Quantity</h6>
 		<div class="row">
 			<div class="col-12 col-md-3">
-				<input class="form-control" type="number" @bind="quantity" min="@MIN_QTY" max="@MAX_QTY" />
+				<input class="form-control"
+					   type="number"
+					   @bind="quantity"
+					   min="@MIN_QTY"
+					   max="@MAX_QTY" />
 			</div>
 		</div>
 	</div>
 
-    <!-- Generate Joke Button -->
-    <div class="d-grid gap-2 d-md-block">
-        <button class="btn btn-success me-2" @onclick="GenerateJokeAsync">Generate Joke</button>
-        <button class="btn btn-secondary" @onclick="ClearForm">Clear Form</button>
-    </div>
+	<!-- Generate Joke Button -->
+	<div class="d-grid gap-2 d-md-block">
+		<button class="btn btn-success me-2" @onclick="GenerateJokeAsync">
+			Generate Joke
+		</button>
+
+		<button class="btn btn-secondary" @onclick="ClearForm">
+			Clear Form
+		</button>
+	</div>
 
 	<!-- Joke Output with QuickGrid -->
-    @if (jokes.Any())
-    {
-        <hr class="mt-4 mb-2" />
+	@if (jokes.Any())
+	{
+		<hr class="mt-4 mb-2" />
 
-        <div class="table-responsive">
-            <QuickGrid Items="jokes.AsQueryable()" Pagination="@pagination" class="table table-striped table-hover">
-                <PropertyColumn Property="@(j => j.Category)" Title="Category" Sortable="true" />
-                <PropertyColumn Property="@(j => j.Type)" Title="Type" Sortable="true" />
-                <PropertyColumn Property="@(j => j.Type == JokeType.TwoPart.ToString().ToLower() ?
-                        $"{j.Setup} - {j.Delivery}" : j.Joke)" Title="Joke" Sortable="true" />
-            </QuickGrid>
-        </div>
+		<div class="table-responsive">
+			<QuickGrid Items="jokes.AsQueryable()"
+					   Pagination="@pagination"
+					   class="table table-striped table-hover">
+				<PropertyColumn Property="@(j => j.Category)"
+								Title="Category"
+								Sortable="true" />
+				<PropertyColumn Property="@(j => j.Type)"
+								Title="Type"
+								Sortable="true" />
+				<PropertyColumn Property="@(j =>
+									j.Type == JokeType.TwoPart.ToString().ToLower() ?
+													$"{j.Setup} - {j.Delivery}" : j.Joke)"
+								Title="Joke"
+								Sortable="true" />
+			</QuickGrid>
+		</div>
 
-        <Paginator State="@pagination" />
-    }
+		<Paginator State="@pagination" />
+	}
+	else if (noJokesFound)
+	{
+		<div class="text-center mt-4">
+			<img src="images/pepe_sad.jpg"
+				 alt="No Jokes Found"
+				 class="d-block mx-auto"
+				 style="height: 125px;" />
+
+			<p class="alert alert-warning">Sorry, no jokes found</p>
+		</div>
+	}
 </div>
 
 @code {
@@ -106,6 +149,7 @@
 	private const int MAX_QTY = 10;
 
 	private int quantity = MIN_QTY;
+	private bool noJokesFound = false;
 	private string searchQuery = string.Empty;
 	private JokeType selectedJokeType = JokeType.Any;
 	private Language selectedLanguage = Language.EN;
@@ -165,7 +209,6 @@
 			}
 
 			url += $"&amount={quantity}";
-			StateHasChanged();
 
 			// Output
 			if (quantity == MIN_QTY)
@@ -192,14 +235,25 @@
 					throw new InvalidOperationException("Error: Joke response is null.");
 				}
 			}
+
+			if (!jokes.Any())
+			{
+				noJokesFound = true;
+			}
+
+			StateHasChanged();
 		}
 		catch (HttpRequestException httpEx)
 		{
 			Logger.LogError(httpEx, "Error fetching joke: {Message}", httpEx.Message);
+			jokes.Clear();
+			noJokesFound = true;
 		}
 		catch (Exception ex)
 		{
 			Logger.LogError(ex, "An unexpected error occurred: {Message}", ex.Message);
+			jokes.Clear();
+			noJokesFound = true;
 		}
 	}
 
@@ -207,6 +261,7 @@
 	{
 		jokes.Clear();
 		quantity = MIN_QTY;
+		noJokesFound = false;
 		searchQuery = string.Empty;
 		selectedJokeType = JokeType.Any;
 		selectedLanguage = Language.EN;
