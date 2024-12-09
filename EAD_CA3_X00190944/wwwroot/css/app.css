@@ -78,6 +78,12 @@ code {
 
 /* Custom CSS */
 #main {
+    flex: 1;
+    min-height: 80vh;
+}
+
+#main,
+#form {
     max-width: 60%;
 }
 
@@ -96,8 +102,15 @@ code {
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
 
+a:hover .fa-linkedin,
+a:hover .fa-github,
+a:hover .fa-instagram {
+    color: #28a745 !important;
+}
+
 @media (max-width: 768px) {
-    #main {
+    #main,
+    #form {
         max-width: 100%;
     }
 }
