@@ -1,7 +1,7 @@
 ﻿@page "/"
 
 @inject HttpClient Http
-@inject ILogger<Home> Logger
+@inject ILogger<Joke> Logger
 
 <PageTitle>Joke Generator | X00190944</PageTitle>
 
@@ -13,7 +13,7 @@
 
 	<h1 class="text-center mb-5 display-4 text-success">Joke Generator</h1>
 
-	<div class="container" id="form">
+	<div class="container w-75">
 		<!-- Category Checkbox -->
 		<div class="mb-3">
 			<h6>Select Categories</h6>
@@ -97,7 +97,7 @@
 
 		<!-- Generate Joke Button -->
 		<div class="d-grid gap-2 d-md-block">
-            <button class="btn btn-success me-md-2" @onclick="GenerateJokeAsync">
+			<button class="btn btn-success me-md-2" @onclick="GenerateJokeAsync">
 				Generate Joke
 			</button>
 
@@ -122,7 +122,7 @@
 									Title="Type"
 									Sortable="true" />
 					<PropertyColumn Property="@(j =>
-									j.Type == JokeType.TwoPart.ToString().ToLower() ?
+										j.Type == JokeType.TwoPart.ToString().ToLower() ?
 													$"{j.Setup} - {j.Delivery}" : j.Joke)"
 									Title="Joke"
 									Sortable="true" />
@@ -146,12 +146,12 @@
 </div>
 
 <!-- Footer Section -->
-<footer class="bg-light bg-success text-center mt-5">
+<footer class="bg-light text-center mt-5">
 	<div class="container p-4">
 		<p class="mb-3 text-center">© 2024 Technological University Dublin</p>
 
 		<div class="row justify-content-center mb-1">
-			<div class="col-lg-6 col-md-12 mb-2 mb-md-0 text-center">
+			<div class="col-lg-6 col-md-12 mb-2 mb-md-0 pe-0 ps-3">
 				<a href="https://www.linkedin.com/in/keneithatillo" target="_blank" class="me-3">
 					<i class="fab fa-linkedin fa-2x text-dark" style="transition: color 0.3s;"></i>
 				</a>
@@ -170,131 +170,3 @@
 		<p class="mb-1 text-center">Computing with Software Development</p>
 	</div>
 </footer>
-
-@code {
-	// Fields
-	private const int MIN_QTY = 1;
-	private const int MAX_QTY = 10;
-
-	private int quantity = MIN_QTY;
-	private bool noJokesFound = false;
-	private string searchQuery = string.Empty;
-	private JokeType selectedJokeType = JokeType.Any;
-	private Language selectedLanguage = Language.EN;
-	private List<JokeResponse> jokes = new List<JokeResponse>();
-	private PaginationState pagination = new PaginationState { ItemsPerPage = 5 };
-
-	private Dictionary<Category, bool> selectedCategories = Enum.GetValues(typeof(Category))
-		.Cast<Category>()
-		.ToDictionary(category => category, category => false);
-
-	// Generate Joke Method
-	private async Task GenerateJokeAsync()
-	{
-		try
-		{
-			string url = "https://v2.jokeapi.dev/joke/";
-
-			// Category
-			var selectedCategoriesString = string.Join(",", selectedCategories
-					.Where(c => c.Value)
-					.Select(c => c.Key.ToString()));
-
-			if (string.IsNullOrEmpty(selectedCategoriesString))
-			{
-				selectedCategoriesString = Category.Any.ToString();
-			}
-
-			// Blacklist
-			var blacklistFlags = string.Join(",", Enum.GetValues(typeof(Blacklist))
-				.Cast<Blacklist>()
-				.Select(flag => flag.ToString().ToLower()));
-
-			url += $"{selectedCategoriesString}?lang={selectedLanguage.ToString().ToLower()}";
-			url += $"&blacklistFlags={blacklistFlags}";
-
-			// Joke Type
-			if (selectedJokeType != JokeType.Any)
-			{
-				url += $"&type={selectedJokeType.ToString().ToLower()}";
-			}
-
-			// Search
-			if (!string.IsNullOrEmpty(searchQuery))
-			{
-				var encodedQuery = Uri.EscapeDataString(searchQuery);
-				url += $"&contains={encodedQuery}";
-			}
-
-			// Quantity
-			if (quantity < MIN_QTY)
-			{
-				quantity = MIN_QTY;
-			}
-			else if (quantity > MAX_QTY)
-			{
-				quantity = MAX_QTY;
-			}
-
-			url += $"&amount={quantity}";
-
-			// Output
-			if (quantity == MIN_QTY)
-			{
-				JokeResponse? response = await Http.GetFromJsonAsync<JokeResponse>(url);
-				if (response != null)
-				{
-					jokes = new List<JokeResponse> { response };
-				}
-				else
-				{
-					throw new InvalidOperationException("Joke response is null.");
-				}
-			}
-			else
-			{
-				MultipleJokeResponse? response = await Http.GetFromJsonAsync<MultipleJokeResponse>(url);
-				if (response != null)
-				{
-					jokes = response.Jokes;
-				}
-				else
-				{
-					throw new InvalidOperationException("Error: Joke response is null.");
-				}
-			}
-
-			if (!jokes.Any())
-			{
-				noJokesFound = true;
-			}
-
-			StateHasChanged();
-		}
-		catch (HttpRequestException httpEx)
-		{
-			Logger.LogError(httpEx, "Error fetching joke: {Message}", httpEx.Message);
-			jokes.Clear();
-			noJokesFound = true;
-		}
-		catch (Exception ex)
-		{
-			Logger.LogError(ex, "An unexpected error occurred: {Message}", ex.Message);
-			jokes.Clear();
-			noJokesFound = true;
-		}
-	}
-
-	private void ClearForm()
-	{
-		jokes.Clear();
-		quantity = MIN_QTY;
-		noJokesFound = false;
-		searchQuery = string.Empty;
-		selectedJokeType = JokeType.Any;
-		selectedLanguage = Language.EN;
-		selectedCategories = Enum.GetValues(typeof(Category))
-			.Cast<Category>()
-			.ToDictionary(category => category, category => false);
-	}
-}
