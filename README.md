@@ -1,5 +1,5 @@
 # Joke Generator
-Enterprise Applications Development 1 - CA3
+Enterprise Applications Development 1 CA3 deployed and accessible at [Joke Generator Live App](https://ead-ca3-x00190944-abb5cadbcdgqgxhn.northeurope-01.azurewebsites.net/)
 
 ---
 
